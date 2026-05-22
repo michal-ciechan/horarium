@@ -1,0 +1,138 @@
+:root {
+  --bg: #ffffff;
+  --ink: #171717;
+  --muted: #666666;
+  --line: #d9d9d9;
+  --line-strong: #bcbcbc;
+  --hover: #f0f0f0;
+  --selected: #e8effe;
+  --sidebar-bg: #f8f8f8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* ── Desktop layout ───────────────────────────────────────────────────────── */
+
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mobileBar  { display: none; }
+.closeTreeBtn { display: none; }
+
+.sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: 14px 12px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebarLoading {
+  padding: 16px 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.main {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── Mobile layout ────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh; /* use dvh so mobile browser chrome is excluded */
+  }
+
+  /* Tree view: sidebar fills screen, main hidden */
+  .shell[data-view="tree"] .mobileBar  { display: none; }
+  .shell[data-view="tree"] .sidebar    { display: flex; flex: 1; overflow-y: auto; border-right: none; }
+  .shell[data-view="tree"] .main       { display: none; }
+  .shell[data-view="tree"] .closeTreeBtn { display: block; }
+
+  /* Plan view: slim header + main fills rest */
+  .shell[data-view="plan"] .mobileBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--sidebar-bg);
+    flex-shrink: 0;
+  }
+  .shell[data-view="plan"] .sidebar    { display: none; }
+  .shell[data-view="plan"] .main       { display: flex; flex: 1; overflow-y: auto; }
+
+  /* Burger button (☰) */
+  .burgerBtn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ink);
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+
+  /* Plan title in mobile header */
+  .mobileTitle {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* × close button inside sidebar header */
+  .closeTreeBtn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 2px 4px;
+  }
+}

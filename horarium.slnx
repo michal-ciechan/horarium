@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Horarium.Api/Horarium.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Horarium.IntegrationTests/Horarium.IntegrationTests.csproj" />
+    <Project Path="tests/Horarium.RunbookTests/Horarium.RunbookTests.csproj" />
+    <Project Path="tests/Horarium.UnitTests/Horarium.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Node
+node_modules/
+src/horarium-ui/node_modules/
+
+# Build output (UI built into wwwroot — commit the built assets)
+# src/Horarium.Api/wwwroot/ is intentionally tracked
+
+# Test results
+TestResults/
+*.trx
+*.html
+
+# Playwright
+.playwright/
+
+# Misc
+.DS_Store
+.memsearch/

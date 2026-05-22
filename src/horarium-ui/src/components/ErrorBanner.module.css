@@ -1,0 +1,17 @@
+.banner {
+  background: #fff8e6;
+  border: 1px solid #f0c040;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.banner ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.banner li + li {
+  margin-top: 4px;
+}

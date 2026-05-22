@@ -1,0 +1,175 @@
+/* ── Top-level collapsible section ──────────────────────────────────────── */
+
+.section {
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.sectionSummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--sidebar-bg);
+}
+
+.sectionSummary::-webkit-details-marker { display: none; }
+
+.sectionSummary::before {
+  content: '›';
+  font-size: 18px;
+  color: var(--muted);
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+details[open] > .sectionSummary::before {
+  transform: rotate(90deg);
+}
+
+.count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--hover);
+  padding: 2px 9px;
+  border-radius: 99px;
+}
+
+.list {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+}
+
+/* ── Individual stage card ───────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--lane-color, var(--line-strong));
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cardSummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--sidebar-bg);
+  flex-wrap: wrap;
+}
+
+.cardSummary::-webkit-details-marker { display: none; }
+
+.cardSummary::before {
+  content: '›';
+  font-size: 13px;
+  color: var(--muted);
+  display: inline-block;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+details[open] > .cardSummary::before {
+  transform: rotate(90deg);
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cardRange {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  font-family: monospace;
+}
+
+.laneTag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Expanded body ───────────────────────────────────────────────────────── */
+
+.cardBody {
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.props {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 14px;
+  margin-bottom: 10px;
+}
+
+.prop {
+  display: contents;
+}
+
+.propLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 2px 0;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.propValue {
+  font-size: 13px;
+  padding: 2px 0;
+  font-family: monospace;
+  word-break: break-word;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.6;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .sectionSummary {
+    padding: 14px 16px;
+    font-size: 17px;
+  }
+
+  .list {
+    padding: 8px 10px 12px;
+    gap: 6px;
+  }
+
+  .cardSummary {
+    padding: 10px 12px;
+  }
+}

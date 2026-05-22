@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>horarium</ToolCommandName>
+    <PackageId>horarium</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Markdown-based schedule and plan viewer</Description>
+    <PackageOutputPath>../../nupkg</PackageOutputPath>
+    <AssemblyName>horarium</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.2.0" />
+    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+  </ItemGroup>
+
+  <Target Name="BuildUI" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release' Or '$(BuildUI)' == 'true'">
+    <Exec Command="npm install" WorkingDirectory="$(MSBuildThisFileDirectory)../horarium-ui" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildThisFileDirectory)../horarium-ui" />
+  </Target>
+
+</Project>

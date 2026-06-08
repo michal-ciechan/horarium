@@ -17,6 +17,12 @@ export interface Stage {
   end: string;
   dependsOn: string[];
   enables: string[];
+  /**
+   * Optional per-dependency exit-time override.  Key = prerequisite stage id.
+   * Value = slice name (e.g. "2025-Q1" → right edge of that column) or
+   * "Mid 2025-Q1" → centre of that column.  Omit for the default right-edge exit.
+   */
+  dependencyAt?: Record<string, string>;
   description: string | null;
 }
 

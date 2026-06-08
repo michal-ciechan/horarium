@@ -1,6 +1,6 @@
 # Portfolio Grouping Programme Plan
-- start: 2026-Q2
-- end: 2028-Q3
+- start: 2026-Q1
+- end: 2028-Q4
 - timeslice: quarter
 
 Programme-level sequencing grouped by delivery stream. The Gantt uses short stage
@@ -27,6 +27,11 @@ Cash framework and subportfolio support.
 - color: "#fcefdc"
 
 PnL application engine and UI integration.
+
+### Infra
+- color: "#fce8e8"
+
+Infrastructure and platform enablement.
 
 ## Stages
 
@@ -57,7 +62,7 @@ Make MatadorFacade group-aware for trade and position resolution.
 - start: 2026-Q4
 - end: 2026-Q4
 - depends_on: tbs-2
-- enables: pnl-2
+- enables: pnl-2, quartz-3
 
 Make readers and clients resolve group IDs and names down to leaf tuples.
 
@@ -90,6 +95,15 @@ Complete migration of all PB service work.
 
 Deliver the new reconciliation engine for positions and trades.
 
+### Rec Engine Full
+- id: quartz-4
+- lane: Quartz
+- start: 2027-Q4
+- end: 2028-Q1
+- depends_on: quartz-3
+
+Extend reconciliation to cover full instrument scope.
+
 ### Cash Framework
 - id: cash-1
 - lane: Cash
@@ -105,8 +119,18 @@ Establish the cash framework changes needed for subportfolio-aware cash processi
 - start: 2026-Q4
 - end: 2026-Q4
 - depends_on: cash-1
+- enables: cash-3
 
 Add subportfolio-level cash support in the new framework.
+
+### Cash Reporting
+- id: cash-3
+- lane: Cash
+- start: 2027-Q2
+- end: 2027-Q3
+- depends_on: cash-2
+
+Deliver cash reporting across subportfolio hierarchy.
 
 ### Pricing Config Service
 - id: pnl-1
@@ -121,7 +145,43 @@ Create the new application pricing setup service.
 - id: pnl-2
 - lane: PnL App
 - start: 2027-Q1
-- end: 2027-Q1
+- end: 2027-Q2
 - depends_on: pnl-1, tbs-3
 
 Build the new PnL engine on top of the Trading Book Service.
+
+### PnL UI Integration
+- id: pnl-3
+- lane: PnL App
+- start: 2027-Q3
+- end: 2027-Q4
+- depends_on: pnl-2
+
+Integrate PnL engine into the front-office UI.
+
+### Cloud Migration
+- id: infra-1
+- lane: Infra
+- start: 2026-Q1
+- end: 2026-Q2
+
+Migrate shared services to cloud-native infrastructure.
+
+### Observability Platform
+- id: infra-2
+- lane: Infra
+- start: 2027-Q1
+- end: 2027-Q2
+- depends_on: infra-1
+- enables: infra-3
+
+Roll out centralised metrics, tracing, and alerting.
+
+### DR & Hardening
+- id: infra-3
+- lane: Infra
+- start: 2028-Q1
+- end: 2028-Q2
+- depends_on: infra-2
+
+Disaster-recovery runbooks and production hardening across all streams.

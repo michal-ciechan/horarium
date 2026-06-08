@@ -60,6 +60,25 @@ body {
   color: var(--muted);
 }
 
+.storybookLink {
+  display: block;
+  margin: auto 12px 12px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.storybookLink:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
 .main {
   overflow-y: auto;
   display: flex;

@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { MemoryRouter } from 'react-router-dom';
 import { HomePageContent } from './HomePage';
 import type { FileTreeNode, ParseResult } from '../types/plan';
 
 const meta: Meta<typeof HomePageContent> = {
   title: 'Pages/HomePage',
   component: HomePageContent,
+  decorators: [(Story) => <MemoryRouter><Story /></MemoryRouter>],
 };
 
 export default meta;

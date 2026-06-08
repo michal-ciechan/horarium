@@ -75,9 +75,13 @@ app.MapGet("/ws", async (HttpContext ctx) =>
     catch { }
 });
 
+// SPA fallback: serve index.html for non-file routes (e.g. /, /plan/foo)
+// and explicitly for /plan/{*.md} routes which have file extensions
+app.MapGet("/plan/{**planPath}", (IWebHostEnvironment env) =>
+    Results.File(Path.Combine(env.WebRootPath, "index.html"), "text/html"));
 app.MapFallbackToFile("index.html");
 
-var address = app.Urls.FirstOrDefault() ?? $"http://localhost:5000";
+var address = app.Urls.FirstOrDefault() ?? "http://localhost:17000";
 Console.WriteLine($"Watching: {watchFolder}");
 Console.WriteLine($"Open:     {address}");
 

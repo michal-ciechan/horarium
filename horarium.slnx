@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Horarium.AppHost/Horarium.AppHost.csproj" />
     <Project Path="src/Horarium.Api/Horarium.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">

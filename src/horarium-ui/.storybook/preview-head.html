@@ -1,0 +1,8 @@
+<script>
+  /* React Refresh shim: prevents $RefreshReg$ is not defined when
+     @vitejs/plugin-react transforms component files before the HMR
+     runtime has been injected into the Storybook preview iframe. */
+  window.$RefreshReg$ = window.$RefreshReg$ || function() {};
+  window.$RefreshSig$ = window.$RefreshSig$ || function() { return function(type) { return type; }; };
+  window.__vite_plugin_react_preamble_installed__ = true;
+</script>

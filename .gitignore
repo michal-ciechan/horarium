@@ -15,7 +15,7 @@ src/horarium-ui/node_modules/
 # Test results
 TestResults/
 *.trx
-*.html
+*-report.html
 
 # Playwright
 .playwright/
@@ -23,3 +23,5 @@ TestResults/
 # Misc
 .DS_Store
 .memsearch/
+
+test-results/

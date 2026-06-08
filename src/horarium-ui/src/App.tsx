@@ -1,16 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FileTree } from './components/FileTree';
 import { PlanView } from './pages/PlanView';
 import { useFileTree } from './hooks/useApi';
 import styles from './App.module.css';
 
+const PLAN_PREFIX = '/plan/';
+
+function pathFromLocation(pathname: string): string | null {
+  if (!pathname.startsWith(PLAN_PREFIX)) return null;
+  return pathname
+    .slice(PLAN_PREFIX.length)
+    .split('/')
+    .map(decodeURIComponent)
+    .join('/');
+}
+
+function encodePlanPath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
 export default function App() {
   const { tree, loading } = useFileTree();
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [treeOpen, setTreeOpen] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const selectedPath = pathFromLocation(location.pathname);
+
+  // On mobile: start with tree open when no plan is in the URL, plan view otherwise.
+  const [treeOpen, setTreeOpen] = useState(!selectedPath);
+
+  // Re-open tree when navigating back to the root (e.g., browser back button).
+  useEffect(() => {
+    if (!selectedPath) setTreeOpen(true);
+  }, [selectedPath]);
 
   function handleSelect(path: string) {
-    setSelectedPath(path);
+    navigate(PLAN_PREFIX + encodePlanPath(path));
     setTreeOpen(false);
   }
 
@@ -46,6 +72,16 @@ export default function App() {
           ? <div className={styles.sidebarLoading}>Loading…</div>
           : <FileTree nodes={tree} selectedPath={selectedPath} onSelect={handleSelect} />
         }
+        {import.meta.env.DEV && (
+          <a
+            href="http://localhost:17004"
+            target="_blank"
+            rel="noreferrer"
+            className={styles.storybookLink}
+          >
+            Storybook
+          </a>
+        )}
       </aside>
 
       <main className={styles.main}>

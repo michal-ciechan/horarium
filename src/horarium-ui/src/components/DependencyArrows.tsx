@@ -1,5 +1,7 @@
 import type { Plan } from '../types/plan';
 import { sliceIndex } from '../utils/slices';
+import { computeArrowPath, exitXFromAt, type ArrowOptions, type CardBounds, type Point } from '../utils/arrowRouting';
+import { GANTT_GRID } from './Gantt';
 
 interface Props {
   plan: Plan;
@@ -7,34 +9,97 @@ interface Props {
   laneColWidth: number;
   sliceColWidth: number;
   rowHeight: number;
+  hoveredStageId?: string | null;
 }
 
-export function DependencyArrows({ plan, slices, laneColWidth, sliceColWidth, rowHeight }: Props) {
-  const headerHeight = 44;
-  const laneIndex = (laneId: string) => plan.lanes.findIndex(l => l.id === laneId);
+const CORNER_RADIUS = 10;
 
-  const stageCenter = (stage: { start: string; laneId: string }) => {
-    const col = sliceIndex(stage.start, slices);
-    const row = laneIndex(stage.laneId);
-    const x = laneColWidth + col * sliceColWidth + sliceColWidth / 2;
-    const y = headerHeight + row * rowHeight + rowHeight / 2;
-    return { x, y };
+/** Converts an array of points into an SVG path string with rounded corners. */
+function roundedPath(pts: readonly Point[]): string {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) {
+    return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+  }
+
+  const r = CORNER_RADIUS;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+
+  for (let i = 1; i < pts.length - 1; i++) {
+    const prev = pts[i - 1];
+    const cur  = pts[i];
+    const next = pts[i + 1];
+
+    // Vector from prev→cur and cur→next
+    const dx0 = cur.x - prev.x, dy0 = cur.y - prev.y;
+    const dx1 = next.x - cur.x, dy1 = next.y - cur.y;
+    const len0 = Math.hypot(dx0, dy0);
+    const len1 = Math.hypot(dx1, dy1);
+
+    // Clamp radius so it never exceeds half the segment length
+    const rc = Math.min(r, len0 / 2, len1 / 2);
+
+    // Point on the incoming segment just before the corner
+    const ax = cur.x - (dx0 / len0) * rc;
+    const ay = cur.y - (dy0 / len0) * rc;
+    // Point on the outgoing segment just after the corner
+    const bx = cur.x + (dx1 / len1) * rc;
+    const by = cur.y + (dy1 / len1) * rc;
+
+    d += ` L ${ax} ${ay} Q ${cur.x} ${cur.y} ${bx} ${by}`;
+  }
+
+  const last = pts[pts.length - 1];
+  d += ` L ${last.x} ${last.y}`;
+  return d;
+}
+
+export function DependencyArrows({ plan, slices, laneColWidth, sliceColWidth, rowHeight, hoveredStageId }: Props) {
+  const grid = { ...GANTT_GRID, laneColWidth, colWidth: sliceColWidth, rowHeight };
+
+  const laneRow = (laneId: string) => plan.lanes.findIndex(l => l.id === laneId);
+
+  const stageBounds = (stageId: string): CardBounds | null => {
+    const stage = plan.stages.find(s => s.id === stageId);
+    if (!stage) return null;
+    return {
+      startCol: sliceIndex(stage.start, slices),
+      endCol:   sliceIndex(stage.end,   slices) + 1,
+      row:      laneRow(stage.laneId),
+    };
   };
 
-  const arrows: { from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
+  // All card rectangles up front — used as routing obstacles (src/tgt excluded
+  // per-arrow) so a low-bend route can be rejected when it would cross a card.
+  const allBounds = plan.stages
+    .map(s => ({ id: s.id, bounds: stageBounds(s.id) }))
+    .filter((b): b is { id: string; bounds: CardBounds } => b.bounds !== null);
+
+  const arrows: { d: string; key: string; srcId: string; tgtId: string }[] = [];
 
   for (const stage of plan.stages) {
+    const tgt = stageBounds(stage.id);
+    if (!tgt) continue;
     for (const depId of stage.dependsOn) {
-      const dep = plan.stages.find(s => s.id === depId);
-      if (!dep) continue;
-      arrows.push({ from: stageCenter(dep), to: stageCenter(stage) });
+      const src = stageBounds(depId);
+      if (!src) continue;
+      const atStr  = stage.dependencyAt?.[depId];
+      const srcExitX = atStr ? exitXFromAt(atStr, slices, grid) : undefined;
+      const obstacles = allBounds
+        .filter(b => b.id !== stage.id && b.id !== depId)
+        .map(b => b.bounds);
+      const options: ArrowOptions = { obstacles };
+      if (srcExitX !== undefined) options.srcExitX = srcExitX;
+      const pts = computeArrowPath(src, tgt, grid, options);
+      arrows.push({ d: roundedPath(pts), key: `${depId}-${stage.id}`, srcId: depId, tgtId: stage.id });
     }
   }
 
+  const anyHovered = hoveredStageId != null;
+
   if (arrows.length === 0) return null;
 
-  const totalWidth = laneColWidth + slices.length * sliceColWidth;
-  const totalHeight = headerHeight + plan.lanes.length * rowHeight;
+  const totalWidth  = laneColWidth + slices.length * sliceColWidth;
+  const totalHeight = GANTT_GRID.headerHeight + plan.lanes.length * rowHeight;
 
   return (
     <svg
@@ -44,21 +109,33 @@ export function DependencyArrows({ plan, slices, laneColWidth, sliceColWidth, ro
       aria-hidden="true"
     >
       <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#525252" />
+        <marker id="arrowhead" markerWidth="4" markerHeight="3"
+                refX="4" refY="1.5" orient="auto">
+          <polygon points="0 0, 4 1.5, 0 3" fill="rgba(80,80,80,0.7)" />
+        </marker>
+        <marker id="arrowhead-hl" markerWidth="4" markerHeight="3"
+                refX="4" refY="1.5" orient="auto">
+          <polygon points="0 0, 4 1.5, 0 3" fill="#4a7eff" />
         </marker>
       </defs>
-      {arrows.map(({ from, to }, i) => (
-        <line
-          key={i}
-          x1={from.x} y1={from.y}
-          x2={to.x} y2={to.y}
-          stroke="#525252"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
-          markerEnd="url(#arrowhead)"
-        />
-      ))}
+      {arrows.map(({ d, key, srcId, tgtId }) => {
+        const highlighted = anyHovered && (srcId === hoveredStageId || tgtId === hoveredStageId);
+        const dimmed      = anyHovered && !highlighted;
+        return (
+          <path
+            key={key}
+            d={d}
+            fill="none"
+            style={{
+              stroke:      highlighted ? '#4a7eff' : 'rgba(80,80,80,0.5)',
+              strokeWidth: highlighted ? 2 : 1,
+              opacity:     dimmed ? 0.2 : 1,
+              transition:  'stroke 0.15s, stroke-width 0.15s, opacity 0.15s',
+            }}
+            markerEnd={highlighted ? 'url(#arrowhead-hl)' : 'url(#arrowhead)'}
+          />
+        );
+      })}
     </svg>
   );
 }

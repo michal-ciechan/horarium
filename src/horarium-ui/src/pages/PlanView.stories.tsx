@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { MemoryRouter } from 'react-router-dom';
 import { PlanViewContent } from './PlanView';
 import type { ParseResult } from '../types/plan';
 
 const meta: Meta<typeof PlanViewContent> = {
   title: 'Pages/PlanView',
   component: PlanViewContent,
+  decorators: [(Story) => <MemoryRouter><Story /></MemoryRouter>],
 };
 
 export default meta;
@@ -42,6 +44,7 @@ const validResult: ParseResult = {
         end: '2025-Q2',
         dependsOn: ['auth'],
         enables: ['dashboard'],
+        dependencyAt: { auth: '2025-Q1' },
         description: null,
       },
       {

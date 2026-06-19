@@ -8,6 +8,8 @@ export default defineConfig({
   },
   server: {
     port: 17001,
+    host: true,
+    allowedHosts: ['.desktop.codeperf.net'],
     proxy: {
       '/api': 'http://localhost:17002',
       '/ws': { target: 'ws://localhost:17002', ws: true },

@@ -31,7 +31,6 @@ const CELL_STYLE: React.CSSProperties = {
   borderLeft:  `1px solid ${LINE}`,
   borderTop:   `1px solid ${LINE}`,
   minHeight:   ROW_HEIGHT,
-  overflow:    'hidden',
   boxSizing:   'border-box',
 };
 const HEADER_STYLE: React.CSSProperties = {
@@ -70,7 +69,6 @@ const STAGE_BLOCK_STYLE = (color: string): React.CSSProperties => ({
   fontWeight:     600,
   textAlign:      'center',
   lineHeight:     1.3,
-  overflow:       'hidden',
   boxSizing:      'border-box',
 });
 
@@ -84,9 +82,6 @@ function MiniGantt({ plan, showDebug = false }: { plan: Plan; showDebug?: boolea
   const gridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${numCols}, ${SLICE_COL_WIDTH}px)`,
-    // Pin rows to the exact heights the routing assumes — same as the real <Gantt>,
-    // so the arrows land identically regardless of title length.
-    gridTemplateRows: `${HEADER_HEIGHT}px repeat(${numRows}, ${ROW_HEIGHT}px)`,
     border: `1px solid ${LINE}`,
     borderRadius: 12,
     overflow: 'hidden',
@@ -104,12 +99,12 @@ function MiniGantt({ plan, showDebug = false }: { plan: Plan; showDebug?: boolea
         ))}
 
         {/* Lane rows — display:contents equivalent via fragment */}
-        {plan.lanes.map((lane: Lane) => {
+        {plan.lanes.map((lane: Lane, laneIndex: number) => {
           const laneStages = plan.stages.filter(s => s.laneId === lane.id);
           const cells = computeLaneCells(laneStages, slices);
           return (
             <div key={lane.id} style={{ display: 'contents' }}>
-              <div style={LANE_LABEL_STYLE}>{lane.label}</div>
+              <div style={LANE_LABEL_STYLE} data-lane-row={laneIndex}>{lane.label}</div>
               {cells.map(({ slice, stage, span }) => (
                 <div
                   key={slice}
@@ -119,7 +114,7 @@ function MiniGantt({ plan, showDebug = false }: { plan: Plan; showDebug?: boolea
                   }}
                 >
                   {stage && (
-                    <div style={STAGE_BLOCK_STYLE(lane.color ?? '#f0f0f0')}>
+                    <div style={STAGE_BLOCK_STYLE(lane.color ?? '#f0f0f0')} data-stage-id={stage.id}>
                       {stage.title}
                     </div>
                   )}

@@ -1,7 +1,14 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { Plan } from '../types/plan';
 import { sliceIndex } from '../utils/slices';
 import { computeArrowPath, exitXFromAt, type ArrowOptions, type CardBounds, type Point } from '../utils/arrowRouting';
 import { GANTT_GRID } from './Gantt';
+
+interface MeasuredRows {
+  rowEdges: number[];
+  rowCardTops: number[];
+  rowCardBottoms: number[];
+}
 
 interface Props {
   plan: Plan;
@@ -54,9 +61,59 @@ function roundedPath(pts: readonly Point[]): string {
 }
 
 export function DependencyArrows({ plan, slices, laneColWidth, sliceColWidth, rowHeight, hoveredStageId }: Props) {
-  const grid = { ...GANTT_GRID, laneColWidth, colWidth: sliceColWidth, rowHeight };
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [measured, setMeasured] = useState<MeasuredRows | null>(null);
 
   const laneRow = (laneId: string) => plan.lanes.findIndex(l => l.id === laneId);
+
+  // Measure the ACTUAL rendered stage blocks + lane rows so the arrows follow real,
+  // content-driven card positions (a long title that wraps makes its row taller —
+  // the fixed rowHeight model would leave the arrow floating off the card centre).
+  // Horizontal geometry stays analytical (columns are fixed-width). Until the first
+  // measurement lands, routing falls back to the analytical model.
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    const container = svg?.parentElement;
+    if (!svg || !container) return;
+
+    const measure = () => {
+      const origin = svg.getBoundingClientRect().top;
+
+      const laneCells = [...container.querySelectorAll<HTMLElement>('[data-lane-row]')]
+        .map(el => { const r = el.getBoundingClientRect(); return { row: Number(el.dataset.laneRow), top: r.top - origin, bottom: r.bottom - origin }; })
+        .sort((a, b) => a.row - b.row);
+      if (laneCells.length === 0) return;
+
+      // Row grid lines: top of each lane row, plus the bottom of the last one.
+      const rowEdges = laneCells.map(c => c.top);
+      rowEdges.push(laneCells[laneCells.length - 1].bottom);
+
+      // Per-row card top/bottom from any stage block in that row (cards in a row
+      // share a height under CSS grid).
+      const rowCardTops: number[] = [];
+      const rowCardBottoms: number[] = [];
+      for (const el of container.querySelectorAll<HTMLElement>('[data-stage-id]')) {
+        const stage = plan.stages.find(s => s.id === el.dataset.stageId);
+        if (!stage) continue;
+        const row = laneRow(stage.laneId);
+        if (row < 0) continue;
+        const r = el.getBoundingClientRect();
+        rowCardTops[row] = r.top - origin;
+        rowCardBottoms[row] = r.bottom - origin;
+      }
+
+      const next: MeasuredRows = { rowEdges, rowCardTops, rowCardBottoms };
+      setMeasured(prev => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    return () => ro.disconnect();
+    // plan drives the stage→row mapping; DOM measurement reflects width/layout changes.
+  }, [plan]);
+
+  const grid = { ...GANTT_GRID, laneColWidth, colWidth: sliceColWidth, rowHeight, ...(measured ?? {}) };
 
   const stageBounds = (stageId: string): CardBounds | null => {
     const stage = plan.stages.find(s => s.id === stageId);
@@ -103,6 +160,7 @@ export function DependencyArrows({ plan, slices, laneColWidth, sliceColWidth, ro
 
   return (
     <svg
+      ref={svgRef}
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}
       width={totalWidth}
       height={totalHeight}

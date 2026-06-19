@@ -23,9 +23,6 @@
   border-left: 1px solid var(--line);
   border-top: 1px solid var(--line);
   min-height: 72px;
-  /* Rows are pinned via grid-template-rows; clip overflow so a long title can't
-     spill past its fixed row (which would misalign the dependency arrows). */
-  overflow: hidden;
 }
 
 /* First column — outer container border provides the left edge */
@@ -67,7 +64,6 @@
   padding: 8px;
   cursor: pointer;
   text-align: center;
-  overflow: hidden;
   transition: filter 0.1s;
 }
 

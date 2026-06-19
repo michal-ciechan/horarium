@@ -48,6 +48,23 @@ export interface GridConfig {
    * clamps the stage block smaller than the cell.
    */
   stageBlockHeight?: number;
+  /**
+   * Measured row grid-line Y positions in SVG coords (length numRows + 1):
+   * `rowEdges[r]` = top of lane row `r` (`rowEdges[0]` = the header bottom border),
+   * `rowEdges[numRows]` = bottom of the last row. When provided, vertical routing
+   * uses the REAL rendered rows instead of the uniform `rowHeight` model — so the
+   * arrows follow content-driven card heights instead of drifting off them.
+   * Horizontal geometry stays analytical (columns are fixed-width).
+   */
+  rowEdges?: number[];
+  /**
+   * Measured stage-block top / bottom Y in SVG coords, indexed by lane row. When
+   * provided, a card's vertical edges and centre come straight from the DOM (cards
+   * in the same row share a top/height under CSS grid). Falls back to the
+   * `stageBlockHeight` / `rowHeight` model when absent.
+   */
+  rowCardTops?: number[];
+  rowCardBottoms?: number[];
 }
 
 /** 0-indexed position of a card in the data grid (excludes the lane-label column). */
@@ -70,41 +87,53 @@ function pxValues(g: GridConfig) {
   };
 }
 
-/** Cell outer boundaries (include border, exclude any outer container border). */
+/** Cell outer boundaries (include border, exclude any outer container border).
+ *  X is always analytical (fixed-width columns); Y comes from measured `rowEdges`
+ *  when present, else the uniform-`rowHeight` model. */
 function cellPx(card: CardBounds, g: GridConfig) {
   const ox = g.originX ?? 0;
   const oy = g.originY ?? 0;
+  const cellTop = g.rowEdges
+    ? g.rowEdges[card.row]
+    : oy + g.headerHeight + card.row * g.rowHeight;
+  const cellBottom = g.rowEdges
+    ? g.rowEdges[card.row + 1]
+    : oy + g.headerHeight + (card.row + 1) * g.rowHeight;
   return {
     cellLeft:   ox + g.laneColWidth + card.startCol * g.colWidth,
     cellRight:  ox + g.laneColWidth + card.endCol   * g.colWidth,
-    cellTop:    oy + g.headerHeight + card.row       * g.rowHeight,
-    cellBottom: oy + g.headerHeight + (card.row + 1) * g.rowHeight,
+    cellTop,
+    cellBottom,
   };
 }
 
-/** stageBlock pixel edges and center. */
+/** stageBlock pixel edges and center. Vertical edges prefer measured DOM rects
+ *  (`rowCardTops`/`rowCardBottoms`), then the `stageBlockHeight` model, then the
+ *  legacy `cellBottom − padding`. Horizontal edges are always analytical. */
 function cardPx(card: CardBounds, g: GridConfig) {
   const { pad, bdr } = pxValues(g);
-  const { cellLeft, cellRight, cellTop, cellBottom } = cellPx(card, g);
-  const cardTop  = cellTop  + bdr + pad;
-  const cardLeft = cellLeft + bdr + pad;
+  const cp = cellPx(card, g);
+  const { cellLeft, cellRight, cellTop, cellBottom } = cp;
+  const cardLeft  = cellLeft + bdr + pad;
+  const cardRight = cellRight - pad;
 
-  const cardBottom = g.stageBlockHeight != null
-    ? cardTop + g.stageBlockHeight
-    : cellBottom - pad;
+  const measuredTop    = g.rowCardTops?.[card.row];
+  const measuredBottom = g.rowCardBottoms?.[card.row];
 
-  const cardCenterY = g.stageBlockHeight != null
-    ? cardTop + g.stageBlockHeight / 2
-    : g.headerHeight + card.row * g.rowHeight + g.rowHeight / 2;
+  let cardTop: number, cardBottom: number, cardCenterY: number;
+  if (measuredTop != null && measuredBottom != null) {
+    cardTop     = measuredTop;
+    cardBottom  = measuredBottom;
+    cardCenterY = (measuredTop + measuredBottom) / 2;
+  } else {
+    cardTop     = cellTop + bdr + pad;
+    cardBottom  = g.stageBlockHeight != null ? cardTop + g.stageBlockHeight : cellBottom - pad;
+    cardCenterY = g.stageBlockHeight != null
+      ? cardTop + g.stageBlockHeight / 2
+      : g.headerHeight + card.row * g.rowHeight + g.rowHeight / 2;
+  }
 
-  return {
-    cardLeft,
-    cardRight:  cellRight - pad,
-    cardTop,
-    cardBottom,
-    cardCenterY,
-    ...cellPx(card, g),
-  };
+  return { cardLeft, cardRight, cardTop, cardBottom, cardCenterY, ...cp };
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────
@@ -320,7 +349,8 @@ export function computeArrowPath(
     // never rises up INTO the header. (The old code used the header midpoint, and
     // before that y = -BAND_OFFSET, which left the canvas entirely.)
     const oy = grid.originY ?? 0;
-    const topBandY = oy + grid.headerHeight;  // = cellTop(row 0), the header bottom border
+    // = cellTop(row 0), the header bottom border (measured when available).
+    const topBandY = grid.rowEdges ? grid.rowEdges[0] : oy + grid.headerHeight;
     return [
       { x: exitX,      y: s.cardTop      },  // exit source top surface
       { x: exitX,      y: topBandY       },  // rise to the header bottom border

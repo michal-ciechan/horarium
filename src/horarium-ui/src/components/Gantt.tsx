@@ -67,14 +67,7 @@ export function Gantt({ plan }: Props) {
     <div className={styles.wrap} ref={containerRef} onClick={() => setSelectedStage(null)}>
       <div
         className={styles.gantt}
-        style={{
-          gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${slices.length}, ${SLICE_COL_WIDTH}px)`,
-          // Pin rows to the exact heights the arrow routing assumes
-          // (HEADER_HEIGHT + one ROW_HEIGHT per lane). Without this, a long title
-          // that wraps grows its row, shifting every row below it away from the
-          // fixed routing grid so dependency arrows no longer hit card centres.
-          gridTemplateRows: `${HEADER_HEIGHT}px repeat(${plan.lanes.length}, ${ROW_HEIGHT}px)`,
-        }}
+        style={{ gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${slices.length}, ${SLICE_COL_WIDTH}px)` }}
       >
         {/* Header row */}
         <div className={`${styles.cell} ${styles.header}`}>Stream</div>
@@ -83,12 +76,12 @@ export function Gantt({ plan }: Props) {
         ))}
 
         {/* Lane rows */}
-        {plan.lanes.map(lane => {
+        {plan.lanes.map((lane, laneIndex) => {
           const laneStages = plan.stages.filter(s => s.laneId === lane.id);
           const cells = computeLaneCells(laneStages, slices);
           return (
             <div key={lane.id} className={styles.row}>
-              <div className={`${styles.cell} ${styles.laneLabel}`}>{lane.label}</div>
+              <div className={`${styles.cell} ${styles.laneLabel}`} data-lane-row={laneIndex}>{lane.label}</div>
               {cells.map(({ slice, stage, span }) => (
                 <div
                   key={slice}
@@ -98,6 +91,7 @@ export function Gantt({ plan }: Props) {
                   {stage && (
                     <div
                       className={styles.stageBlock}
+                      data-stage-id={stage.id}
                       style={{ background: lane.color ?? '#f0f0f0' }}
                       onMouseEnter={e => handleMouseEnter(stage, e)}
                       onMouseLeave={() => setHoveredStage(null)}

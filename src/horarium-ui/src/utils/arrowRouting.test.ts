@@ -845,3 +845,57 @@ describe('connection invariants — endpoints attach to a card edge interior, ne
     });
   }
 });
+
+// ─── Measured rows: vertical geometry follows the DOM, not the fixed-row model ──
+//
+//  When `rowEdges` / `rowCardTops` / `rowCardBottoms` are supplied (DependencyArrows
+//  measures the real stage blocks + lane rows), card Y edges/centres and the row
+//  grid lines come from the DOM instead of the uniform `rowHeight` model. This is
+//  what keeps arrows on the card centres when a wrapped title makes a row taller
+//  and shifts the rows below it. Horizontal geometry stays analytical.
+
+describe('measured rows — vertical geometry follows the DOM', () => {
+  // GANTT_REAL, but row 0 renders 82 px tall (a 3-line title) instead of 72 — so
+  // every row below is pushed down 10 px. The measured arrays describe that REAL
+  // layout (cf. the PortfolioPlan Gantt story).
+  const MEASURED: GridConfig = {
+    ...GANTT_REAL,
+    rowEdges:       [45, 127, 199, 271],  // row-0 top=45 (header bottom), row 0 is 82 px, rest 72
+    rowCardTops:    [54, 136, 208],
+    rowCardBottoms: [111, 188, 260],      // row-0 card is 57 px tall (54→111); rest 52 px
+  };
+
+  it('forward L-shape: exit/entry Y are the MEASURED card centres (82.5 / 162), not 80 / 152', () => {
+    const path = computeArrowPath(
+      { startCol: 0, endCol: 1, row: 0 },
+      { startCol: 1, endCol: 2, row: 1 },
+      MEASURED,
+    );
+    expect(path[0].y).toBeCloseTo(82.5, 5);                  // centred on the tall row-0 card
+    expect(path[path.length - 1].y).toBeCloseTo(162, 5);     // centred on the shifted row-1 card
+    // X is unchanged (columns are fixed-width): right edge of col 0 → left edge of col 1
+    // (GANTT_REAL originX=1: cardRight(col0)=273, cardLeft(col1)=290)
+    expect(path[0].x).toBe(273);
+    expect(path[path.length - 1].x).toBe(290);
+  });
+
+  it('backwards top-arc exits the MEASURED card top and rides the MEASURED header border', () => {
+    const path = computeArrowPath(
+      { startCol: 2, endCol: 3, row: 0 },
+      { startCol: 0, endCol: 1, row: 0 },
+      MEASURED,
+    );
+    expect(path[0].y).toBe(54);                              // measured row-0 card top
+    expect(Math.min(...path.map(p => p.y))).toBe(45);        // rides rowEdges[0], the header bottom
+  });
+
+  it('falls back to the analytical model when no measurements are supplied', () => {
+    const analytical = computeArrowPath(
+      { startCol: 0, endCol: 1, row: 0 },
+      { startCol: 1, endCol: 2, row: 1 },
+      GANTT_REAL,
+    );
+    expect(analytical[0].y).toBe(80);                        // stageBlockHeight model, not measured
+    expect(analytical[analytical.length - 1].y).toBe(152);
+  });
+});

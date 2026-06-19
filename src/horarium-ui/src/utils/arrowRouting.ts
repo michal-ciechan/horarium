@@ -12,12 +12,14 @@
  * "Backwards" = t.cardLeft < srcExitX (target's left entry is left of source's exit).
  * "Custom exit" = caller supplies srcExitX (a mid-card or slice-boundary X position).
  *
- * Backwards routing:
+ * Backwards routing (default exit X is the source's horizontal CENTRE, so the
+ * arrow leaves the middle of the top/bottom surface rather than a corner; an
+ * explicit srcExitX overrides it):
  *   tgt.row ≤ src.row (same row or target above):
  *     Arc over top — exit top surface, rise into the header channel (a card-free
  *     band inside the canvas), travel left, drop to target centre Y, stub in. 5 pts.
  *   tgt.row > src.row (target below):
- *     Exit bottom surface at srcExitX, drop vertically to the row grid line
+ *     Exit bottom surface at exitX, drop vertically to the row grid line
  *     (s.cellBottom), travel left to target's column boundary, drop to target
  *     centre Y, stub in.  5 pts.
  */
@@ -208,12 +210,21 @@ export function computeArrowPath(
   const s = cardPx(src, grid);
   const t = cardPx(tgt, grid);
 
-  const exitX  = options?.srcExitX ?? s.cardRight;
   const entryX = t.cardLeft;
   const entryY = t.cardCenterY;
 
-  // Arrow needs to travel leftward → use top/bottom band routing.
-  const isBackwards = entryX < exitX;
+  // Arrow needs to travel leftward → use top/bottom band routing. Classify against
+  // the *default* right-edge exit so an explicit srcExitX never flips the decision.
+  const isBackwards = entryX < (options?.srcExitX ?? s.cardRight);
+
+  // Where the arrow leaves the source. A caller-supplied srcExitX (a slice boundary
+  // or mid-card position) is always honoured. Otherwise a forward arrow leaves the
+  // right edge at centre Y; a backwards arrow arcs over the top (or under the
+  // bottom), so it leaves the horizontal CENTRE of that surface. Leaving a backwards
+  // arrow from the right edge would start it on a top/bottom corner of the card,
+  // which reads as "floating / not connected".
+  const exitX = options?.srcExitX
+    ?? (isBackwards ? (s.cardLeft + s.cardRight) / 2 : s.cardRight);
 
   // ── Standard forward paths ─────────────────────────────────────────────────
   // Custom exits that are still forward (exitX ≤ entryX) use L/Z routing too —

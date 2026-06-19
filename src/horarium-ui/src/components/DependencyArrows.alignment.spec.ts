@@ -317,6 +317,13 @@ test('FutureRetro: backwards arrow exits Future top, arcs over the grid, enters 
   expect(Math.abs(exit.y - futureTop),
     `exit y ${exit.y.toFixed(1)} should be on Future top ${futureTop.toFixed(1)}`).toBeLessThanOrEqual(1.5);
 
+  // …and from the horizontal CENTRE of Future, not a corner. The bug: a backwards
+  // arrow left the right edge, so its start floated off the top-RIGHT corner.
+  const futureCenterX = future!.x + future!.width / 2;
+  expect(Math.abs(exit.x - futureCenterX),
+    `exit x ${exit.x.toFixed(1)} should be at Future's horizontal centre ${futureCenterX.toFixed(1)} `
+    + `(not the top-right corner)`).toBeLessThanOrEqual(1.5);
+
   // The whole arrow stays inside the SVG canvas (the bug: it used to arc above the top).
   expectWithinCanvas(pts, scene.svg!);
 

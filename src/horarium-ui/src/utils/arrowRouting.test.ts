@@ -312,30 +312,30 @@ describe('renderGrid', () => {
 //    cellBottom(r) = (r+1)*60
 
 describe('backwards routing → top/bottom band', () => {
-  it('same row: source right of target → top arch (inside canvas)', () => {
-    // src: col 2-3, row 0 → cardRight=292, cardTop=9
+  it('same row: source right of target → top arch from card centre (inside canvas)', () => {
+    // src: col 2-3, row 0 → cardLeft=209, cardRight=292 → cardCenterX=250.5, cardTop=9
     // tgt: col 0-1, row 0 → cardLeft=9, cellLeft=0, cardCenterY=30
-    // useTop=true; band = originY + headerHeight/2 = 0 + 0 = 0 (header-strip top,
-    // not the old y=−20 which sat above the canvas), srcSurfaceY=9
+    // useTop=true; band = originY + headerHeight = 0 (header bottom border).
+    // Default backwards exit leaves the TOP-CENTRE of the source, not the corner.
     expect(computeArrowPath(c(2,3,0), c(0,1,0), G))
-      .toEqual(p([292,9],[292,0],[0,0],[0,30],[9,30]));
+      .toEqual(p([250.5,9],[250.5,0],[0,0],[0,30],[9,30]));
   });
 
-  it('target one row above → top arch (inside canvas)', () => {
-    // src: col 2-3, row 1 → cardRight=292, cardTop=69, cellBottom=120
+  it('target one row above → top arch from card centre (inside canvas)', () => {
+    // src: col 2-3, row 1 → cardCenterX=250.5, cardTop=69, cellBottom=120
     // tgt: col 0-1, row 0 → cardLeft=9, cellLeft=0, cardCenterY=30
-    // useTop=(0≤1)=true; band=0, srcSurfaceY=69
+    // useTop=(0≤1)=true; band=0, exits the top-centre of the source.
     expect(computeArrowPath(c(2,3,1), c(0,1,0), G))
-      .toEqual(p([292,69],[292,0],[0,0],[0,30],[9,30]));
+      .toEqual(p([250.5,69],[250.5,0],[0,0],[0,30],[9,30]));
   });
 
-  it('target one row below → exit bottom, drop to grid line, go left, drop to target', () => {
-    // src: col 2-3, row 0 → cardRight=292, cardBottom=52, cellBottom=60
+  it('target one row below → exit bottom centre, drop to grid line, go left, drop to target', () => {
+    // src: col 2-3, row 0 → cardCenterX=250.5, cardBottom=52, cellBottom=60
     // tgt: col 0-1, row 1 → cardLeft=9, cellLeft=0, cardCenterY=90
-    // useTop=(1≤0)=false → exit bottom (292,52), drop to grid line (292,60),
+    // useTop=(1≤0)=false → exit bottom-centre (250.5,52), drop to grid line (250.5,60),
     //                       left to (0,60), drop to (0,90), stub to (9,90)
     expect(computeArrowPath(c(2,3,0), c(0,1,1), G))
-      .toEqual(p([292,52],[292,60],[0,60],[0,90],[9,90]));
+      .toEqual(p([250.5,52],[250.5,60],[0,60],[0,90],[9,90]));
   });
 });
 
@@ -554,9 +554,10 @@ describe('real Gantt – MultiExit plan alignment (originX=1, originY=1)', () =>
     ).toBe(false);
   });
 
-  it('future→retro: backwards same-row → top arc on the header bottom border', () => {
-    // future.cardRight = 1 + 160 + 4*120 - 8 = 633
-    // retro.cardLeft=290 < 633 → backwards; same row → top arc.
+  it('future→retro: backwards same-row → top arc from the source top-centre', () => {
+    // future.cardLeft=530, cardRight=633 → cardCenterX=581.5. Default backwards exit
+    // leaves the TOP-CENTRE of the source card, not the top-right corner.
+    // retro.cardLeft=290 < exit → backwards; same row → top arc.
     // band = originY + headerHeight = 1 + 44 = 45 — the header bottom border
     // (cellTop of row 0). Above every card body (card tops are at 54) but never
     // up inside the header.
@@ -565,7 +566,7 @@ describe('real Gantt – MultiExit plan alignment (originX=1, originY=1)', () =>
       { startCol: 3, endCol: 4, row: 3 },
       { startCol: 1, endCol: 2, row: 3 },
       GANTT_REAL,
-    )).toEqual(p([633,270],[633,45],[281,45],[281,296],[290,296]));
+    )).toEqual(p([581.5,270],[581.5,45],[281,45],[281,296],[290,296]));
   });
 
   it('future→retro clears a card sitting between them (arc goes over the top)', () => {
@@ -576,7 +577,7 @@ describe('real Gantt – MultiExit plan alignment (originX=1, originY=1)', () =>
     const retro:   CardBounds = { startCol: 1, endCol: 2, row: 3 };
     const blocker: CardBounds = { startCol: 2, endCol: 3, row: 3 };
     const path = computeArrowPath(future, retro, GANTT_REAL, { obstacles: [blocker] });
-    expect(path).toEqual(p([633,270],[633,45],[281,45],[281,296],[290,296]));
+    expect(path).toEqual(p([581.5,270],[581.5,45],[281,45],[281,296],[290,296]));
     expect(
       pathOverlapsCard(path, blocker, GANTT_REAL),
       `arc ${pathToString(path)} crosses the in-between card`,
@@ -769,6 +770,78 @@ describe('routing invariants — inside the canvas, never through a card', () =>
         `highest point y=${highest} rises above the header bottom border y=${headerBottom} `
         + `in ${pathToString(path)}`,
       ).toBeGreaterThanOrEqual(headerBottom - 0.5);
+    });
+  }
+});
+
+// ─── Connection invariants: endpoints attach to a card EDGE INTERIOR, not a corner ─
+//
+//  Every arrow must visibly connect to its cards. The exit (first point) sits on
+//  the source card's perimeter and the entry (last point) on the target's — and on
+//  the *interior* of one edge, never on a corner. A corner attachment (e.g. the
+//  top-RIGHT of a card) reads as "floating / not connected": for a backwards arrow
+//  that arcs over the top, the natural exit is the top-CENTRE of the source card,
+//  not its top-right corner. This runs over every routing scenario so the same
+//  "disconnected endpoint" regression is caught in any shape, not just the one a
+//  human happened to eyeball in Storybook.
+
+type Edge = 'top' | 'bottom' | 'left' | 'right';
+
+/** Direction of travel from a→b (orthogonal segments only). */
+function segDir(a: Point, b: Point): 'up' | 'down' | 'left' | 'right' {
+  if (Math.abs(a.x - b.x) < 0.5) return b.y > a.y ? 'down' : 'up';
+  return b.x > a.x ? 'right' : 'left';
+}
+
+/** The edge an arrow LEAVES the source through, inferred from its first segment. */
+function exitEdge(path: ArrowPath): Edge {
+  const d = segDir(path[0], path[1]);
+  return d === 'up' ? 'top' : d === 'down' ? 'bottom' : d === 'right' ? 'right' : 'left';
+}
+
+/** The edge an arrow ENTERS the target through, inferred from its last segment. */
+function entryEdge(path: ArrowPath): Edge {
+  const n = path.length;
+  const d = segDir(path[n - 2], path[n - 1]);   // direction of arrival into the card
+  // Arriving rightward means it came in through the target's LEFT edge, etc.
+  return d === 'right' ? 'left' : d === 'left' ? 'right' : d === 'down' ? 'top' : 'bottom';
+}
+
+/** Assert `pt` sits on the interior of `edge` of `rect`: on the edge line AND
+ *  strictly between that edge's two corners (a corner attachment fails). */
+function expectEdgeInterior(pt: Point, edge: Edge, rect: Rect, label: string) {
+  const EPS = 0.6;
+  if (edge === 'top' || edge === 'bottom') {
+    const edgeY = edge === 'top' ? rect.top : rect.bottom;
+    expect(Math.abs(pt.y - edgeY),
+      `${label}: endpoint y=${pt.y} is not on the ${edge} edge (y=${edgeY})`).toBeLessThan(EPS);
+    const msg = `${label}: endpoint attaches at a CORNER (x=${pt.x}) of the ${edge} edge `
+      + `spanning [${rect.left}, ${rect.right}] — it should connect to the edge interior (centre), not a corner`;
+    expect(pt.x, msg).toBeGreaterThan(rect.left + EPS);
+    expect(pt.x, msg).toBeLessThan(rect.right - EPS);
+  } else {
+    const edgeX = edge === 'left' ? rect.left : rect.right;
+    expect(Math.abs(pt.x - edgeX),
+      `${label}: endpoint x=${pt.x} is not on the ${edge} edge (x=${edgeX})`).toBeLessThan(EPS);
+    const msg = `${label}: endpoint attaches at a CORNER (y=${pt.y}) of the ${edge} edge `
+      + `spanning [${rect.top}, ${rect.bottom}] — it should connect to the edge interior (centre), not a corner`;
+    expect(pt.y, msg).toBeGreaterThan(rect.top + EPS);
+    expect(pt.y, msg).toBeLessThan(rect.bottom - EPS);
+  }
+}
+
+describe('connection invariants — endpoints attach to a card edge interior, never a corner', () => {
+  for (const sc of ROUTING_SCENARIOS) {
+    it(`${sc.name}: exit connects to the source card edge interior`, () => {
+      const path = computeArrowPath(sc.src, sc.tgt, sc.grid, sc.options);
+      expectEdgeInterior(path[0], exitEdge(path), cardRect(sc.src, sc.grid),
+        `exit of "${sc.name}" ${pathToString(path)}`);
+    });
+
+    it(`${sc.name}: entry connects to the target card edge interior`, () => {
+      const path = computeArrowPath(sc.src, sc.tgt, sc.grid, sc.options);
+      expectEdgeInterior(path[path.length - 1], entryEdge(path), cardRect(sc.tgt, sc.grid),
+        `entry of "${sc.name}" ${pathToString(path)}`);
     });
   }
 });

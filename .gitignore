@@ -24,4 +24,7 @@ TestResults/
 .DS_Store
 .memsearch/
 
+# Claude Code runtime locks (machine-local, not work)
+.claude/scheduled_tasks.lock
+
 test-results/

@@ -67,7 +67,14 @@ export function Gantt({ plan }: Props) {
     <div className={styles.wrap} ref={containerRef} onClick={() => setSelectedStage(null)}>
       <div
         className={styles.gantt}
-        style={{ gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${slices.length}, ${SLICE_COL_WIDTH}px)` }}
+        style={{
+          gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${slices.length}, ${SLICE_COL_WIDTH}px)`,
+          // Pin rows to the exact heights the arrow routing assumes
+          // (HEADER_HEIGHT + one ROW_HEIGHT per lane). Without this, a long title
+          // that wraps grows its row, shifting every row below it away from the
+          // fixed routing grid so dependency arrows no longer hit card centres.
+          gridTemplateRows: `${HEADER_HEIGHT}px repeat(${plan.lanes.length}, ${ROW_HEIGHT}px)`,
+        }}
       >
         {/* Header row */}
         <div className={`${styles.cell} ${styles.header}`}>Stream</div>

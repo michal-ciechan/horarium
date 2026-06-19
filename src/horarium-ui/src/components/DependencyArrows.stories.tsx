@@ -31,6 +31,7 @@ const CELL_STYLE: React.CSSProperties = {
   borderLeft:  `1px solid ${LINE}`,
   borderTop:   `1px solid ${LINE}`,
   minHeight:   ROW_HEIGHT,
+  overflow:    'hidden',
   boxSizing:   'border-box',
 };
 const HEADER_STYLE: React.CSSProperties = {
@@ -69,6 +70,7 @@ const STAGE_BLOCK_STYLE = (color: string): React.CSSProperties => ({
   fontWeight:     600,
   textAlign:      'center',
   lineHeight:     1.3,
+  overflow:       'hidden',
   boxSizing:      'border-box',
 });
 
@@ -82,6 +84,9 @@ function MiniGantt({ plan, showDebug = false }: { plan: Plan; showDebug?: boolea
   const gridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: `${LANE_COL_WIDTH}px repeat(${numCols}, ${SLICE_COL_WIDTH}px)`,
+    // Pin rows to the exact heights the routing assumes — same as the real <Gantt>,
+    // so the arrows land identically regardless of title length.
+    gridTemplateRows: `${HEADER_HEIGHT}px repeat(${numRows}, ${ROW_HEIGHT}px)`,
     border: `1px solid ${LINE}`,
     borderRadius: 12,
     overflow: 'hidden',

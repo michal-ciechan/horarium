@@ -24,7 +24,7 @@ dotnet run --project src/Horarium.AppHost -- C:\src\horarium\samples
 | 17000 | Aspire dashboard (login required) | —                                         |
 | 17001 | Frontend — Vite dev server        | **https://horarium.desktop.codeperf.net** |
 | 17002 | Backend — ASP.NET Core API        | (served under the UI at `/api`)           |
-| 17004 | Storybook                         | —                                         |
+| 17004 | Storybook                         | **https://storybook.horarium.desktop.codeperf.net** |
 
 ## Remote access — https://horarium.desktop.codeperf.net
 
@@ -40,6 +40,12 @@ so it's reachable from any tailnet device (e.g. phone). `/api` is proxied by Vit
   returns **403** to the public Host header).
 - **Verify from the box** (MagicDNS can't resolve `*.codeperf.net`, so pin to Caddy):
   `curl.exe --resolve horarium.desktop.codeperf.net:443:127.0.0.1 https://horarium.desktop.codeperf.net/api/plans`
+
+Storybook is fronted the same way at **https://storybook.horarium.desktop.codeperf.net** (the
+`Horarium Storybook` link, `"proxy": 17004`). Storybook's dev server has its **own** host check —
+set `core.allowedHosts: ['.desktop.codeperf.net']` in `src/horarium-ui/.storybook/main.ts` (Vite's
+`server.allowedHosts` does NOT apply — Storybook runs Vite in middleware mode), and restart
+Storybook (it doesn't hot-reload `main.ts`).
 
 ## Aspire dashboard login
 

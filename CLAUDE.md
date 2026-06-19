@@ -15,7 +15,7 @@ dotnet run --project src/Horarium.AppHost -- C:\src\horarium\samples
 | 17000 | Aspire dashboard | —                                       |
 | 17001 | Vite dev client  | **https://horarium.desktop.codeperf.net** |
 | 17002 | ASP.NET Core API | (proxied under the UI at `/api`)        |
-| 17004 | Storybook        | —                                       |
+| 17004 | Storybook        | **https://storybook.horarium.desktop.codeperf.net** |
 
 Dashboard requires a one-time login token printed to the console on first run.
 
@@ -32,6 +32,10 @@ single public host serves both UI and data. Wiring (already in place):
   `host.docker.internal` can reach it) and `allowedHosts: ['.desktop.codeperf.net']` (else Vite
   returns 403 to the public Host header).
 
+Storybook (17004) is similarly fronted as **https://storybook.horarium.desktop.codeperf.net** (the
+`Horarium Storybook` link in the same machine file). Its host allowlist lives in
+`src/horarium-ui/.storybook/main.ts` as `core.allowedHosts` — see Gotchas.
+
 ## Gotchas
 
 - **Aspire 13.x on .NET 10**: Use `Aspire.AppHost.Sdk` 13.x as an MSBuild NuGet SDK — not the old workload. `AddNpmApp` was removed; use `AddViteApp("client", "../client")` for Vite frontends.
@@ -42,3 +46,4 @@ single public host serves both UI and data. Wiring (already in place):
 - **Launch from PowerShell, not Bash**: The Bash tool is Git Bash — it strips the backslashes from `C:\src\horarium\samples`, so the AppHost gets `C:srchorariumsamples`, the API can't find the samples folder, and 17002 never comes up (UI loads but `/api/plans` fails). Run the launch command via PowerShell, or escape/quote the path for bash.
 - **Public HTTPS host (Vite `allowedHosts`)**: Exposing the UI as `horarium.desktop.codeperf.net` needs `host: true` + `allowedHosts: ['.desktop.codeperf.net']` in `vite.config.ts`; otherwise Caddy reaches Vite but gets a 403 on the public Host header. See the Remote access section.
 - **Blank page / `$RefreshSig$ is not defined`**: `@vitejs/plugin-react@6.0.2` on `vite@8.0.x` rewrites components to call `$RefreshSig$`/`$RefreshReg$` but its `transformIndexHtml` hook fails to inject the React Fast Refresh preamble that defines them — so the first component import throws and React never mounts (HTTP 200 but blank). `vite.config.ts` includes a `react-refresh-preamble-fallback` plugin (`apply: 'serve'`) that injects the preamble itself in dev. Don't remove it unless a `@vitejs/plugin-react` bump fixes the upstream bug. The build (`vite build`) is unaffected — it doesn't use Fast Refresh.
+- **Storybook behind a proxy returns 403 "Invalid host"**: Storybook's *own* dev server validates the `Host` header (separate from Vite's `server.allowedHosts`, which doesn't apply because Storybook runs Vite in middleware mode). Set `core.allowedHosts` in `.storybook/main.ts` — NOT `viteFinal`. Leading-dot entries match subdomains (`'.desktop.codeperf.net'`). Storybook does **not** hot-reload `main.ts`; restart it (e.g. restart the AppHost) for the change to take effect.
